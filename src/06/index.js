@@ -1,6 +1,6 @@
-import { createMachine, assign, interpret } from 'xstate';
+import { createMachine, assign, interpret } from "xstate";
 
-const elBox = document.querySelector('#box');
+const elBox = document.querySelector("#box");
 const elBody = document.body;
 
 const assignPoint = assign({
@@ -37,49 +37,65 @@ const resetPosition = assign({
   py: 0,
 });
 
-const machine = createMachine({
-  initial: 'idle',
-  context: {
-    x: 0,
-    y: 0,
-    dx: 0,
-    dy: 0,
-    px: 0,
-    py: 0,
-    drags: 0,
-  },
-  states: {
-    idle: {
-      on: {
-        mousedown: {
-          // Don't select this transition unless
-          // there are < 5 drags
-          // ...
-          actions: assignPoint,
-          target: 'dragging',
-        },
-      },
-    },
-    dragging: {
-      // Whenever we enter this state, we want to
-      // increment the drags count.
-      // ...
-      on: {
-        mousemove: {
-          actions: assignDelta,
-        },
-        mouseup: {
-          actions: [assignPosition],
-          target: 'idle',
-        },
-        'keyup.escape': {
-          target: 'idle',
-          actions: resetPosition,
-        },
-      },
-    },
-  },
+const incrementDrags = assign({
+  drags: ({ drags }) => drags + 1,
 });
+
+const notMaxDrags = ({ drags }) => drags < 5;
+
+const machine = createMachine(
+  {
+    initial: "idle",
+    context: {
+      x: 0,
+      y: 0,
+      dx: 0,
+      dy: 0,
+      px: 0,
+      py: 0,
+      drags: 0,
+    },
+    states: {
+      idle: {
+        on: {
+          mousedown: {
+            // Don't select this transition unless
+            // there are < 5 drags
+            // ...
+            cond: "notMaxDrags",
+            actions: [assignPoint],
+            target: "dragging",
+          },
+        },
+      },
+      dragging: {
+        // Whenever we enter this state, we want to
+        // increment the drags count.
+        // ...
+        tesrwet: {},
+        entry: incrementDrags,
+        on: {
+          mousemove: {
+            actions: assignDelta,
+          },
+          mouseup: {
+            actions: [assignPosition],
+            target: "idle",
+          },
+          "keyup.escape": {
+            target: "idle",
+            actions: resetPosition,
+          },
+        },
+      },
+    },
+  },
+  {
+    guards: {
+      notMaxDrags: ({ drags }) => drags < 3,
+    },
+  }
+);
 
 const service = interpret(machine);
 
@@ -90,29 +106,29 @@ service.onTransition((state) => {
     elBox.dataset.state = state.value;
     elBox.dataset.drags = state.context.drags;
 
-    elBox.style.setProperty('--dx', state.context.dx);
-    elBox.style.setProperty('--dy', state.context.dy);
-    elBox.style.setProperty('--x', state.context.x);
-    elBox.style.setProperty('--y', state.context.y);
+    elBox.style.setProperty("--dx", state.context.dx);
+    elBox.style.setProperty("--dy", state.context.dy);
+    elBox.style.setProperty("--x", state.context.x);
+    elBox.style.setProperty("--y", state.context.y);
   }
 });
 
 service.start();
 
-elBox.addEventListener('mousedown', (event) => {
+elBox.addEventListener("mousedown", (event) => {
   service.send(event);
 });
 
-elBody.addEventListener('mousemove', (event) => {
+elBody.addEventListener("mousemove", (event) => {
   service.send(event);
 });
 
-elBody.addEventListener('mouseup', (event) => {
+elBody.addEventListener("mouseup", (event) => {
   service.send(event);
 });
 
-elBody.addEventListener('keyup', (e) => {
-  if (e.key === 'Escape') {
-    service.send('keyup.escape');
+elBody.addEventListener("keyup", (e) => {
+  if (e.key === "Escape") {
+    service.send("keyup.escape");
   }
 });
