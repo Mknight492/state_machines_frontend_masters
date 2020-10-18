@@ -1,27 +1,30 @@
-import { createMachine, assign, interpret } from 'xstate';
+import { createMachine, assign, interpret } from "xstate";
 
-const elBox = document.querySelector('#box');
+const elBox = document.querySelector("#box");
 const elBody = document.body;
 
 const machine = createMachine({
-  initial: 'idle',
+  initial: "idle",
   // Set the initial context
-  // Clue: {
-  //   x: 0,
-  //   y: 0,
-  //   dx: 0,
-  //   dy: 0,
-  //   px: 0,
-  //   py: 0,
-  // }
-  // context: ...,
+  context: {
+    x: 0,
+    y: 0,
+    dx: 0,
+    dy: 0,
+    px: 0,
+    py: 0,
+  },
   states: {
     idle: {
       on: {
         mousedown: {
           // Assign the point
           // ...
-          target: 'dragging',
+          target: "dragging",
+          actions: assign({
+            px: (_c, { clientX }) => clientX,
+            py: (_c, { clientY }) => clientY,
+          }),
         },
       },
     },
@@ -29,12 +32,23 @@ const machine = createMachine({
       on: {
         mousemove: {
           // Assign the delta
-          // ...
           // (no target!)
+          actions: assign({
+            dx: (_c, { clientX }) => clientX - _c.px,
+            dy: (_c, { clientY }) => clientY - _c.py,
+          }),
         },
         mouseup: {
           // Assign the position
-          target: 'idle',
+          target: "idle",
+          actions: assign({
+            x: ({ x, dx }) => x + dx,
+            y: ({ y, dy }) => y + dy,
+            dx: 0,
+            dy: 0,
+            px: 0,
+            py: 0,
+          }),
         },
       },
     },
@@ -49,10 +63,10 @@ service.onTransition((state) => {
 
     elBox.dataset.state = state.value;
 
-    elBox.style.setProperty('--dx', state.context.dx);
-    elBox.style.setProperty('--dy', state.context.dy);
-    elBox.style.setProperty('--x', state.context.x);
-    elBox.style.setProperty('--y', state.context.y);
+    elBox.style.setProperty("--dx", state.context.dx);
+    elBox.style.setProperty("--dy", state.context.dy);
+    elBox.style.setProperty("--x", state.context.x);
+    elBox.style.setProperty("--y", state.context.y);
   }
 });
 
@@ -62,3 +76,7 @@ service.start();
 // - mousedown on elBox
 // - mousemove on elBody
 // - mouseup on elBody
+
+elBox.addEventListener("mousedown", service.send);
+elBody.addEventListener("mousemove", service.send);
+elBody.addEventListener("mouseup", service.send);

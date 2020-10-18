@@ -1,28 +1,44 @@
-import { createMachine, interpret } from 'xstate';
+import { createMachine, interpret, assign } from "xstate";
 
-const elBox = document.querySelector('#box');
 
-const setPoint = (context, event) => {
+const elBox = document.querySelector("#box");
+
+const setPoint = (context, { clientX, clientY }) => {
   // Set the data-point attribute of `elBox`
   // ...
+  // console.log(event);
+  elBox.dataset.point = `${clientX},${clientY}`;
 };
 
-const machine = createMachine({
-  initial: 'idle',
+const machine = createMachine<unknown, MouseEvent>({
+  initial: "idle",
+  context:{
+    count: 0
+  }
   states: {
     idle: {
       on: {
         mousedown: {
           // Add your action here
           // ...
-          target: 'dragging',
+
+          target: "dragging",
+          actions: (context, { clientX, clientY }) => {
+            // Set the data-point attribute of `elBox`
+            // ...
+            // console.log(event);
+            elBox.dataset.point = `${clientX},${clientY}`;
+          }
         },
       },
     },
     dragging: {
+      entry: assign({
+          count: ({count},e)=>count+1
+      }),
       on: {
         mouseup: {
-          target: 'idle',
+          target: "idle",
         },
       },
     },
@@ -39,10 +55,6 @@ service.onTransition((state) => {
 
 service.start();
 
-elBox.addEventListener('mousedown', (event) => {
-  service.send(event);
-});
-
-elBox.addEventListener('mouseup', (event) => {
-  service.send(event);
-});
+elBox.addEventListener("mousedown", service.send);
+elBox.addEventListener("mouseout", service.send);
+elBox.addEventListener("mouseup", service.send);
